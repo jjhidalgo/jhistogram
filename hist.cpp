@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
     gsl_histogram_set_ranges(hist2, range,nbins+1);
     
     for(ibin = 0; ibin < nbins; ibin++){
-      gsl_histogram_accumulate(hist2,range[ibin],1./range[ibin]);
+      gsl_histogram_accumulate(hist2,range[ibin],1./(range[ibin+1]-range[ibin]));
     }
   }
   
