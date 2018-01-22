@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
   double maxval = -1.0e-99;
   double minval = 1.0e+99;
   bool minmaxGiven = false;
+  bool normGiven = false;
   double norm = 1.;
   bool weighted =  false;
   const char*  histtype;
@@ -32,7 +33,7 @@ int main(int argc, char *argv[])
   fdataName = "btc.dat";
   fhistName = "btc-hist.dat";
   nbins = 30;
-  histtype = "uni";
+  histtype = "log";
   
   if(argc>=3){
     fdataName = argv[1];
@@ -55,29 +56,48 @@ int main(int argc, char *argv[])
   }
   if(argc>=8){
     norm = atof(argv[7]);
+    normGiven = true;
   }
   if(argc==9){
     weighted = atoi(argv[8]);
   }
-  cout << nbins << " " << norm << " " << minmaxGiven <<endl;
+  cout << "input file: " << fdataName << endl;
+  cout << "output file: " << fhistName << endl;
+  cout << "nbins: " << nbins << endl;
+  cout << "norm: " << norm << endl;
+  cout << "norm given: " << normGiven << endl;
+  cout << "min: "  << minval << endl;
+  cout << "max: "  << maxval << endl;
+  cout << "minmaxgiven: " << minmaxGiven << endl;
+  cout << "type: "  << histtype << endl;
+  cout << "weighted: " << weighted << endl;
+  
   // Read data to get max and minimum
   fstream fdata;
   double val;
-  if(!minmaxGiven){
+  if(!minmaxGiven || !normGiven){
     fdata.open(fdataName.c_str(),std::fstream::in);
-  
+    double norm2 = 0;
+    
     while(!fdata.eof()) {
       fdata >> val;
 
-      if(val>maxval){
-        maxval = val;
+      if(!minmaxGiven){
+        if(val>maxval){
+          maxval = val;
+        }
+        if(val<minval){
+          minval = val;
+        }
       }
-      if(val<minval){
-        minval = val;
-      }
+            if(!normGiven){
+        norm2 +=1;
+       }
     }
     
-    cout << maxval << " " << minval << " " << nbins << norm << endl;
+    cout << "computed max: " << maxval << endl;
+    cout << "computed min: " << minval << endl;
+    cout << "computed norm: " << norm2 << endl;
 
     fdata.close();
 
@@ -93,7 +113,9 @@ int main(int argc, char *argv[])
   if(strcmp (histtype,"log")==0){
     double lmin, lmax;
     int ibin;
-    double range[nbins+1],aux;
+    double *range = new double[nbins+1];
+    double *dx = new double[nbins];
+    double aux;
     
     lmin = log10(minval);
     lmax = log10(maxval);
@@ -104,14 +126,19 @@ int main(int argc, char *argv[])
     }
 
     range[nbins] = pow(10.,lmax);
-      
+
+    for(ibin = 0; ibin < nbins; ibin++){
+      dx[ibin] = range[ibin+1] - range[ibin];
+    }
+    
     hist = gsl_histogram_alloc(nbins);
     hist2 = gsl_histogram_alloc(nbins);    
     gsl_histogram_set_ranges(hist, range,nbins+1);
     gsl_histogram_set_ranges(hist2, range,nbins+1);
     
+    
     for(ibin = 0; ibin < nbins; ibin++){
-      gsl_histogram_accumulate(hist2,range[ibin],1./(range[ibin+1]-range[ibin]));
+      gsl_histogram_accumulate(hist2,range[ibin],1./dx[ibin]);
     }
   }
   
@@ -136,6 +163,11 @@ int main(int argc, char *argv[])
 
   fdata.close();
 
+  if(!normGiven || norm<1.e-9){
+    norm = gsl_histogram_sum(hist);
+    cout << "normsum " << norm << endl;
+  }
+  
   gsl_histogram_scale (hist,1.0/norm);
   
   if(strcmp (histtype,"log")==0){

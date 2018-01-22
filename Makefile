@@ -22,7 +22,7 @@ LDFLAGS =
 
 all: $(PROG)
 
-# Regla implícita para pasar .cpp a .o (forma nueva "patern rule").
+# Regla implÃ­cita para pasar .cpp a .o (forma nueva "patern rule").
 $(OBJDIR)/%.o : %.cpp
 	$(CPP) -c $(CPPFLAGS) $(PARLL) $(LIBS)  $< -o $@
 
